@@ -10,13 +10,18 @@ def distance(p1, p2):
 
 
 scalingFactor = 1.6
+landmarks_file = 'state.json'
+results_file = 'rtm-m-256x192/results_kolo_cerne.json'
+landmark_names = ["foot", "heel", "ankle",
+                  "knee", "hip", "shoulder", "elbow", "wrist"]
+show = False
 
 gt = {}
-with open('state.json') as f:
+with open(landmarks_file) as f:
     gt = json.load(f)
 
 results = {}
-with open('rtm-m-256x192/results_kolo_cerne.json') as f:
+with open(results_file) as f:
     results = json.load(f)
 
 
@@ -57,35 +62,36 @@ for i, landmark in enumerate(landmarks):
 distances = np.array(distances)
 landmarks_distances = np.mean(distances, axis=0)
 
-print("Landmarks distances: " + str(landmarks_distances))
+print("Landmarks distances: " + str(dict(zip(landmark_names, landmarks_distances))))
 print("Total avg distance: " + str(np.mean(landmarks_distances)))
 
 # open video and read it frame by frame
-cap = cv2.VideoCapture('kolo_cerne.mp4')
+
 
 # print(distances[0])
-
-# read frames
-frame_idx = 0
-ret, frame = cap.read()
-while ret:
-    # draw landmarks
-    landmark = landmarks[frame_idx]
-    for point in landmark:
-        cv2.circle(frame, (int(point['x']), int(
-            point['y'])), 5, (255, 0, 0), -1)
-
-    # draw predictions
-    prediction = predictions[frame_idx]
-    for i, point in enumerate(prediction['instances'][0]['keypoints']):
-        if i in keypoint_mapping:
-            cv2.circle(frame, (int(point[0]), int(
-                point[1])), 5, (0, 0, 255), -1)
-
-    cv2.imshow('frame', frame)
-    if cv2.waitKey(10) & 0xFF == 27:
-        break
-
+if show:
+    cap = cv2.VideoCapture('kolo_cerne.mp4')
+    # read frames
+    frame_idx = 0
     ret, frame = cap.read()
-    frame_idx += 1
+    while ret:
+        # draw landmarks
+        landmark = landmarks[frame_idx]
+        for point in landmark:
+            cv2.circle(frame, (int(point['x']), int(
+                point['y'])), 5, (255, 0, 0), -1)
+
+        # draw predictions
+        prediction = predictions[frame_idx]
+        for i, point in enumerate(prediction['instances'][0]['keypoints']):
+            if i in keypoint_mapping:
+                cv2.circle(frame, (int(point[0]), int(
+                    point[1])), 5, (0, 0, 255), -1)
+
+        cv2.imshow('frame', frame)
+        if cv2.waitKey(10) & 0xFF == 27:
+            break
+
+        ret, frame = cap.read()
+        frame_idx += 1
 # print(landmarks)
