@@ -3,10 +3,11 @@
 import json
 import numpy as np
 import cv2
+import pprint
 
 scalingFactor = 1.6
 landmarks_file = 'state.json'
-results_file = 'rtm-m-256x192-halpe26/results_kolo_cerne.json'
+results_file = 'rtm-m-256x192/results_kolo_cerne.json'
 landmark_names = ["foot", "heel", "ankle",
                   "knee", "hip", "shoulder", "elbow", "wrist"]
 show = True
@@ -104,6 +105,7 @@ predictions = results['instance_info']
 assert len(predictions) == len(landmarks)
 
 keypoint_mapping = getKeypointMapping(keypoint_names, results)
+print(keypoint_mapping)
 
 facing_left = isFacingLeft(landmarks)
 
@@ -114,8 +116,8 @@ if not facing_left:
 distances = np.array(calcDistances(landmarks, predictions))
 landmarks_distances = np.mean(distances, axis=0)
 
-print("Landmarks distances: " + str(dict(zip(landmark_names, landmarks_distances))))
-print("Total avg distance: " + str(np.mean(landmarks_distances)))
+print("Landmarks distances: " + pprint.pformat(dict(zip(landmark_names, landmarks_distances))))
+print("Total avg distance: " + str(np.mean(landmarks_distances, where=landmarks_distances != -1)))
 
 
 if show:
