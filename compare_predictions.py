@@ -11,7 +11,7 @@ landmarks_file = 'gt/kolo_cerne.json'
 results_files = glob.glob("predictions/*/results_kolo_cerne.json")
 landmark_names = ["foot", "heel", "ankle",
                   "knee", "hip", "shoulder", "elbow", "wrist"]
-show = False
+show = True
 video_path = 'kolo_cerne.mp4'
 
 keypoint_names = ["left_small_toe", "left_heel", "left_ankle",
@@ -60,46 +60,83 @@ def isFacingLeft(landmarks):
     return wrist['x'] < hip['x']
 
 
-def calcDistances(landmarks, predictions):
-    distances = []
-    for i, landmark in enumerate(landmarks):
-        frame_distances = []
-        prediction = predictions[i]
-        # calculate landmarks area
-        min_x = min(landmark, key=lambda p: p['x'])['x']
-        max_x = max(landmark, key=lambda p: p['x'])['x']
-        min_y = min(landmark, key=lambda p: p['y'])['y']
-        max_y = max(landmark, key=lambda p: p['y'])['y']
-        area = (max_x - min_x) * (max_y - min_y)
-        for j, point in enumerate(landmark):
-            if keypoint_mapping[j] != -1:
-                dist = distance(
-                    point, prediction['instances'][0]['keypoints'][keypoint_mapping[j]])
-                frame_distances.append(dist / np.sqrt(area) * 100)
+def landmarksToArr(landmarks):
+    arr = []
+    for landmark in landmarks:
+        frame_arr = []
+        for point in landmark:
+            point_arr = []
+            point_arr.append(point['x'])
+            point_arr.append(point['y'])
+            frame_arr.append(point_arr)
+        arr.append(frame_arr)
+    arr = np.array(arr)
+    assert arr.shape == (len(landmarks), 8, 2), "shape is " + str(arr.shape)
+    return arr
+
+
+def predictionsToArr(predictions, keypoint_mapping):
+    arr = []
+    for prediction in predictions:
+        frame_arr = []
+        for i in range(8):
+            if keypoint_mapping[i] != -1:
+                point_arr = []
+                point_arr.append(
+                    prediction['instances'][0]['keypoints'][keypoint_mapping[i]][0])
+                point_arr.append(
+                    prediction['instances'][0]['keypoints'][keypoint_mapping[i]][1])
+                frame_arr.append(point_arr)
             else:
-                frame_distances.append(-1)
-        distances.append(frame_distances)
-    return distances
+                frame_arr.append([-1, -1])
+        arr.append(frame_arr)
+    arr = np.array(arr)
+    assert arr.shape == (len(predictions), 8, 2), "shape is " + str(arr.shape)
+    return arr
 
 
-def visualizeLandmarks(landmarks, predictions, video_path):
+def calcDistancesArr(landmarks_arr, predictions_arr):
+    assert landmarks_arr.shape == predictions_arr.shape, "shapes are " + \
+        str(landmarks_arr.shape) + " and " + str(predictions_arr.shape)
+    dists = []
+    for (landmark, prediction) in zip(landmarks_arr, predictions_arr):
+        max_x = max(landmark, key=lambda p: p[0])[0]
+        min_x = min(landmark, key=lambda p: p[0])[0]
+        max_y = max(landmark, key=lambda p: p[1])[1]
+        min_y = min(landmark, key=lambda p: p[1])[1]
+        normalization = np.sqrt((max_x - min_x) * (max_y - min_y))
+        frame_dists = []
+        for (landmark_point, prediction_point) in zip(landmark, prediction):
+            if landmark_point[0] != -1 and prediction_point[0] != -1:
+                dist = np.sqrt(
+                    np.sum((landmark_point-prediction_point)**2)) / normalization * 100
+            else:
+                dist = -1
+            frame_dists.append(dist)
+        dists.append(frame_dists)
+    dists = np.array(dists)
+    print(dists.shape)
+    return dists
+
+
+def visualizeLandmarks(landmarks_arr, predictions_arr, video_path):
     cap = cv2.VideoCapture(video_path)
     # read frames
     frame_idx = 0
     ret, frame = cap.read()
     while ret:
         # draw landmarks
-        landmark = landmarks[frame_idx]
+
+        landmark = landmarks_arr[frame_idx]
         for point in landmark:
-            cv2.circle(frame, (int(point['x']), int(
-                point['y'])), 5, (255, 0, 0), -1)
+            cv2.circle(frame, (int(point[0]), int(
+                point[1])), 5, (255, 0, 0), -1)
 
         # draw predictions
-        prediction = predictions[frame_idx]
-        for i, point in enumerate(prediction['instances'][0]['keypoints']):
-            if i in keypoint_mapping:
-                cv2.circle(frame, (int(point[0]), int(
-                    point[1])), 5, (0, 0, 255), -1)
+        prediction = predictions_arr[frame_idx]
+        for point in prediction:
+            cv2.circle(frame, (int(point[0]), int(
+                point[1])), 5, (255, 255, 0), -1)
 
         cv2.imshow('frame', frame)
         if cv2.waitKey(10) & 0xFF == 27:
@@ -109,33 +146,41 @@ def visualizeLandmarks(landmarks, predictions, video_path):
         frame_idx += 1
 
 
-gt = loadJSON(landmarks_file)
-landmarks = getLandmarks(gt['$landmarksStore'])
+def main():
 
-for results_file in results_files:
-    model_name = results_file.split('\\')[1]
-    print("Model: " + model_name)
-
-    results = loadJSON(results_file)
-
-    predictions = results['instance_info']
-    assert len(predictions) == len(landmarks)
-
-    keypoint_mapping = getKeypointMapping(keypoint_names, results)
-
+    gt = loadJSON(landmarks_file)
+    landmarks = getLandmarks(gt['$landmarksStore'])
     facing_left = isFacingLeft(landmarks)
 
-    if not facing_left:
-        keypoint_mapping = flipKeypoints(keypoint_mapping, results)
+    landmarks = landmarksToArr(landmarks)
 
-    distances = np.array(calcDistances(landmarks, predictions))
-    landmarks_distances = np.mean(distances, axis=0)
+    for results_file in results_files:
+        model_name = results_file.split('\\')[1]
+        print("Model: " + model_name)
 
-    print("Landmarks distances: \n" +
-          pprint.pformat(dict(zip(landmark_names, landmarks_distances))))
-    print("Total avg distance: " +
-          str(np.mean(landmarks_distances, where=landmarks_distances != -1)))
+        results = loadJSON(results_file)
+        keypoint_mapping = getKeypointMapping(keypoint_names, results)
 
-    print()
-    if show:
-        visualizeLandmarks(landmarks, predictions, video_path)
+        predictions = results['instance_info']
+        assert len(predictions) == len(landmarks)
+        predictions = predictionsToArr(predictions, keypoint_mapping)
+
+        if not facing_left:
+            keypoint_mapping = flipKeypoints(keypoint_mapping, results)
+
+        distances = calcDistancesArr(landmarks, predictions)
+
+        landmarks_distances = np.mean(distances, axis=0)
+
+        print("Landmarks distances: \n" +
+              pprint.pformat(dict(zip(landmark_names, landmarks_distances))))
+        print("Total avg distance: " +
+              str(np.mean(landmarks_distances, where=landmarks_distances != -1)))
+
+        print()
+        if show:
+            visualizeLandmarks(landmarks, predictions, video_path)
+
+
+if __name__ == "__main__":
+    main()
