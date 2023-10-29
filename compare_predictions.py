@@ -14,7 +14,9 @@ landmark_names = ["foot", "heel", "ankle",
 show = False
 video_path = 'kolo_cerne.mp4'
 
-keypoint_names = ["left_small_toe", "left_heel","left_ankle", "left_knee", "left_hip", "left_shoulder", "left_elbow", "left_wrist"]
+keypoint_names = ["left_small_toe", "left_heel", "left_ankle",
+                  "left_knee", "left_hip", "left_shoulder", "left_elbow", "left_wrist"]
+
 
 def getKeypointMapping(keypoint_names, results):
     name_dict = results['meta_info']["keypoint_name2id"]
@@ -26,6 +28,7 @@ def getKeypointMapping(keypoint_names, results):
             mapping.append(-1)
     return mapping
 
+
 def flipKeypoints(mapping, results):
     flip_indices = results['meta_info']['flip_indices']
     for i, index in enumerate(mapping):
@@ -33,16 +36,20 @@ def flipKeypoints(mapping, results):
             mapping[i] = flip_indices[index]
     return mapping
 
+
 def distance(p1, p2):
     return np.sqrt((p1['x'] - p2[0])**2 + (p1['y'] - p2[1])**2)
+
 
 def loadJSON(path):
     with open(path) as f:
         return json.load(f)
 
+
 def getLandmarks(landmarksStore):
     return [[{"x": lm["x"]*scalingFactor, "y": lm["y"]*scalingFactor}
-              for lm in landmarkList] for landmarkList in landmarksStore]
+             for lm in landmarkList] for landmarkList in landmarksStore]
+
 
 def isFacingLeft(landmarks):
     # check first frame predictions to see if left wrist is more to the left than left hip
@@ -52,19 +59,28 @@ def isFacingLeft(landmarks):
     hip = landmarks[0][4]
     return wrist['x'] < hip['x']
 
+
 def calcDistances(landmarks, predictions):
     distances = []
     for i, landmark in enumerate(landmarks):
         frame_distances = []
         prediction = predictions[i]
+        # calculate landmarks area
+        min_x = min(landmark, key=lambda p: p['x'])['x']
+        max_x = max(landmark, key=lambda p: p['x'])['x']
+        min_y = min(landmark, key=lambda p: p['y'])['y']
+        max_y = max(landmark, key=lambda p: p['y'])['y']
+        area = (max_x - min_x) * (max_y - min_y)
         for j, point in enumerate(landmark):
             if keypoint_mapping[j] != -1:
-                frame_distances.append(
-                    distance(point, prediction['instances'][0]['keypoints'][keypoint_mapping[j]]))
+                dist = distance(
+                    point, prediction['instances'][0]['keypoints'][keypoint_mapping[j]])
+                frame_distances.append(dist / np.sqrt(area) * 100)
             else:
                 frame_distances.append(-1)
         distances.append(frame_distances)
     return distances
+
 
 def visualizeLandmarks(landmarks, predictions, video_path):
     cap = cv2.VideoCapture(video_path)
@@ -91,7 +107,6 @@ def visualizeLandmarks(landmarks, predictions, video_path):
 
         ret, frame = cap.read()
         frame_idx += 1
-    
 
 
 gt = loadJSON(landmarks_file)
@@ -103,8 +118,6 @@ for results_file in results_files:
 
     results = loadJSON(results_file)
 
-
-
     predictions = results['instance_info']
     assert len(predictions) == len(landmarks)
 
@@ -115,12 +128,13 @@ for results_file in results_files:
     if not facing_left:
         keypoint_mapping = flipKeypoints(keypoint_mapping, results)
 
-
     distances = np.array(calcDistances(landmarks, predictions))
     landmarks_distances = np.mean(distances, axis=0)
 
-    print("Landmarks distances: \n" + pprint.pformat(dict(zip(landmark_names, landmarks_distances))))
-    print("Total avg distance: " + str(np.mean(landmarks_distances, where=landmarks_distances != -1)))
+    print("Landmarks distances: \n" +
+          pprint.pformat(dict(zip(landmark_names, landmarks_distances))))
+    print("Total avg distance: " +
+          str(np.mean(landmarks_distances, where=landmarks_distances != -1)))
 
     print()
     if show:
