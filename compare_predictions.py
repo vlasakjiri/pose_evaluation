@@ -1,4 +1,6 @@
 # load state.json and results_kolo_zlute.json
+# %%
+
 import glob
 import os
 import pprint
@@ -72,8 +74,23 @@ def main():
             if show:
                 visualizeLandmarks(landmarks, predictions, video_path)
 
-    print(pd.DataFrame(data))
+    df = pd.DataFrame(data)
+    return df
 
 
 if __name__ == "__main__":
-    main()
+    df = main()
+    df= df.drop(columns="video").groupby("model").mean()
+    # %%
+
+    all = df.drop(columns=["foot","heel"])
+    all["mean"] = all.mean(axis=1)
+    all.sort_values(by="mean")
+    # %%
+    wholebody = df.copy()
+    wholebody = wholebody[wholebody["foot"] != -1]
+    wholebody["mean"] = wholebody.mean(axis=1)
+    wholebody.sort_values(by="mean")
+
+
+# %%
