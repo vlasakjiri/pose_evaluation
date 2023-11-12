@@ -51,7 +51,7 @@ def calcDistancesArr(landmarks_arr, predictions_arr):
         min_x = min(landmark, key=lambda p: p[0])[0]
         max_y = max(landmark, key=lambda p: p[1])[1]
         min_y = min(landmark, key=lambda p: p[1])[1]
-        normalization = np.sqrt((max_x - min_x) * (max_y - min_y))
+        normalization = ((max_x - min_x) + (max_y - min_y)) / 2
         frame_dists = []
         for (landmark_point, prediction_point) in zip(landmark, prediction):
             if landmark_point[0] != -1 and prediction_point[0] != -1:

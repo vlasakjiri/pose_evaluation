@@ -80,17 +80,19 @@ def main():
 
 if __name__ == "__main__":
     df = main()
-    df= df.drop(columns="video").groupby("model").mean()
+    df = df.drop(columns="video").groupby("model").mean()
     # %%
 
-    all = df.drop(columns=["foot","heel"])
+    all = df.drop(columns=["foot", "heel"])
     all["mean"] = all.mean(axis=1)
-    all.sort_values(by="mean")
+    all = all.sort_values(by="mean")
+    print(all)
     # %%
     wholebody = df.copy()
     wholebody = wholebody[wholebody["foot"] != -1]
     wholebody["mean"] = wholebody.mean(axis=1)
-    wholebody.sort_values(by="mean")
+    wholebody = wholebody.sort_values(by="mean")
+    print(wholebody)
 
 
 # %%
