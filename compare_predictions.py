@@ -46,10 +46,12 @@ def main():
             results = loadJSON(results_file)
             keypoint_mapping = getKeypointMapping(keypoint_names, results)
 
+            print(keypoint_mapping)
             predictions = results['instance_info']
             assert len(predictions) == len(landmarks)
             if not facing_left:
                 keypoint_mapping = flipKeypoints(keypoint_mapping, results)
+                print("Flipped keypoints", keypoint_mapping)
 
             predictions = predictionsToArr(predictions, keypoint_mapping)
 
@@ -86,13 +88,15 @@ if __name__ == "__main__":
     all = df.drop(columns=["foot", "heel"])
     all["mean"] = all.mean(axis=1)
     all = all.sort_values(by="mean")
+    all.index = all.index.str.replace("_", "\_")
     print(all)
     # %%
     wholebody = df.copy()
     wholebody = wholebody[wholebody["foot"] != -1]
     wholebody["mean"] = wholebody.mean(axis=1)
     wholebody = wholebody.sort_values(by="mean")
-    print(wholebody)
+    wholebody.index = wholebody.index.str.replace("_", "\_")
+    print(wholebody.to_latex(float_format="%.2f"))
 
 
 # %%
