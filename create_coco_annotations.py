@@ -38,17 +38,16 @@ for id, image_file in enumerate(image_files):
     predictions_file = predictions_folder + f"{video_name}.json"
     predictions = loadJSON(predictions_file)
     keypoint_mapping = getKeypointMapping(keypoint_names, predictions)
-    print(keypoint_mapping)
 
     if not facing_left:
         keypoint_mapping = flipKeypoints(keypoint_mapping, predictions)
         print("Flipped keypoints", keypoint_mapping)
     predictions = predictions['instance_info']
     assert len(predictions) == len(gt)
-    predictions = predictionsToArr(predictions, keypoint_mapping)
+    # predictions = predictionsToArr(predictions, keypoint_mapping)
 
     gt = gt[frame_number]
-    predictions = predictions[frame_number]
+    predictions = predictions[frame_number]["instances"][0]
 
     # get width and height
     img = cv.imread(image_file)
@@ -61,6 +60,25 @@ for id, image_file in enumerate(image_files):
         "height": height,
         "width": width
     })
+    keypoints = [keypoint + [1] for keypoint in predictions["keypoints"]]
+    for idx, gt_keypoint in zip(keypoint_mapping, gt):
+        if idx != -1:
+            keypoints[idx] = list(gt_keypoint) + [2]
+
+    bbox = predictions["bbox"][0]
+    area = bbox[2] * bbox[3]
+
+    annotations.append({
+        "id": id,
+        "image_id": id,
+        "category_id": 1,
+        "keypoints": keypoints,
+        "num_keypoints": len(keypoints),
+        "bbox": bbox,
+        "area": area,
+        "iscrowd": 0
+    })
+    # print(annotations)
 
     # img = cv2.imread(image_file)
     # for point in gt:
@@ -71,3 +89,9 @@ for id, image_file in enumerate(image_files):
     # while True:
     #     if cv.waitKey(10) & 0xFF == 27:
     #         break
+
+dataset = {"images": images, "annotations": annotations,
+           "categories": categories}
+
+with open('annotations.json', 'w') as f:
+    json.dump(dataset, f)
