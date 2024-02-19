@@ -1,18 +1,19 @@
-_base_ = ['../../../_base_/default_runtime.py']
+_base_ = ['./_base_/default_runtime.py']
 
 # common setting
 num_keypoints = 26
 input_size = (192, 256)
 
 # runtime
-max_epochs = 700
-stage2_num_epochs = 30
-base_lr = 4e-3
-train_batch_size = 512
-val_batch_size = 64
+max_epochs = 20
+base_lr = 0
+train_batch_size = 16
+val_batch_size = 16
 
-train_cfg = dict(max_epochs=max_epochs, val_interval=10)
+train_cfg = dict(max_epochs=max_epochs, val_interval=1)
 randomness = dict(seed=21)
+
+load_from = "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-l_simcc-body7_pt-body7-halpe26_700e-256x192-2abb7558_20230605.pth"
 
 # optimizer
 optim_wrapper = dict(
@@ -23,22 +24,22 @@ optim_wrapper = dict(
         norm_decay_mult=0, bias_decay_mult=0, bypass_duplicate=True))
 
 # learning rate
-param_scheduler = [
-    dict(
-        type='LinearLR',
-        start_factor=1.0e-5,
-        by_epoch=False,
-        begin=0,
-        end=1000),
-    dict(
-        type='CosineAnnealingLR',
-        eta_min=base_lr * 0.05,
-        begin=max_epochs // 2,
-        end=max_epochs,
-        T_max=max_epochs // 2,
-        by_epoch=True,
-        convert_to_iter_based=True),
-]
+# param_scheduler = [
+#     dict(
+#         type='LinearLR',
+#         start_factor=1.0e-5,
+#         by_epoch=False,
+#         begin=0,
+#         end=1000),
+#     dict(
+#         type='CosineAnnealingLR',
+#         eta_min=base_lr * 0.05,
+#         begin=max_epochs // 2,
+#         end=max_epochs,
+#         T_max=max_epochs // 2,
+#         by_epoch=True,
+#         convert_to_iter_based=True),
+# ]
 
 # automatically scaling LR based on the actual training batch size
 auto_scale_lr = dict(base_batch_size=1024)
@@ -74,8 +75,7 @@ model = dict(
         init_cfg=dict(
             type='Pretrained',
             prefix='backbone.',
-            checkpoint='https://download.openmmlab.com/mmpose/v1/projects/'
-            'rtmposev1/rtmpose-l_simcc-body7_pt-body7_420e-256x192-4dba18fc_20230504.pth'  # noqa
+            checkpoint="https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-l_simcc-body7_pt-body7-halpe26_700e-256x192-2abb7558_20230605.pth"  # noqa
         )),
     head=dict(
         type='RTMCCHead',
@@ -113,31 +113,37 @@ backend_args = dict(backend='local')
 train_pipeline = [
     dict(type='LoadImage', backend_args=backend_args),
     dict(type='GetBBoxCenterScale'),
-    dict(type='RandomFlip', direction='horizontal'),
-    dict(type='RandomHalfBody'),
-    dict(
-        type='RandomBBoxTransform', scale_factor=[0.5, 1.5], rotate_factor=90),
+    # dict(type='RandomFlip', direction='horizontal'),
+    # dict(type='RandomHalfBody'),
+    # dict(
+    #     type='RandomBBoxTransform',
+    #     scale_factor=[1, 1.5],
+    #     rotate_factor=30,
+    #     shift_factor=0.,
+    #     # shift_prob=0,
+    #     # scale_prob=0,
+    # ),
     dict(type='TopdownAffine', input_size=codec['input_size']),
-    dict(type='PhotometricDistortion'),
-    dict(
-        type='Albumentation',
-        transforms=[
-            dict(type='Blur', p=0.1),
-            dict(type='MedianBlur', p=0.1),
-            dict(
-                type='CoarseDropout',
-                max_holes=1,
-                max_height=0.4,
-                max_width=0.4,
-                min_holes=1,
-                min_height=0.2,
-                min_width=0.2,
-                p=1.0),
-        ]),
+    # dict(type='PhotometricDistortion'),
+    # dict(
+    #     type='Albumentation',
+    #     transforms=[
+    #         dict(type='Blur', p=0.1),
+    #         dict(type='MedianBlur', p=0.1),
+    #         # dict(
+    #         #     type='CoarseDropout',
+    #         #     max_holes=1,
+    #         #     max_height=0.4,
+    #         #     max_width=0.4,
+    #         #     min_holes=1,
+    #         #     min_height=0.2,
+    #         #     min_width=0.2,
+    #         #     p=1.0),
+    #     ]),
     dict(
         type='GenerateTarget',
         encoder=codec,
-        use_dataset_keypoint_weights=True),
+        use_dataset_keypoint_weights=False),
     dict(type='PackPoseInputs')
 ]
 val_pipeline = [
@@ -147,38 +153,6 @@ val_pipeline = [
     dict(type='PackPoseInputs')
 ]
 
-train_pipeline_stage2 = [
-    dict(type='LoadImage', backend_args=backend_args),
-    dict(type='GetBBoxCenterScale'),
-    dict(type='RandomFlip', direction='horizontal'),
-    dict(type='RandomHalfBody'),
-    dict(
-        type='RandomBBoxTransform',
-        shift_factor=0.,
-        scale_factor=[0.5, 1.5],
-        rotate_factor=90),
-    dict(type='TopdownAffine', input_size=codec['input_size']),
-    dict(
-        type='Albumentation',
-        transforms=[
-            dict(type='Blur', p=0.1),
-            dict(type='MedianBlur', p=0.1),
-            dict(
-                type='CoarseDropout',
-                max_holes=1,
-                max_height=0.4,
-                max_width=0.4,
-                min_holes=1,
-                min_height=0.2,
-                min_width=0.2,
-                p=0.5),
-        ]),
-    dict(
-        type='GenerateTarget',
-        encoder=codec,
-        use_dataset_keypoint_weights=True),
-    dict(type='PackPoseInputs')
-]
 
 # mapping
 halpe_halpe26 = [(i, i) for i in range(26)]
@@ -261,13 +235,10 @@ custom_hooks = [
         ema_type='ExpMomentumEMA',
         momentum=0.0002,
         update_buffers=True,
-        priority=49),
-    dict(
-        type='mmdet.PipelineSwitchHook',
-        switch_epoch=max_epochs - stage2_num_epochs,
-        switch_pipeline=train_pipeline_stage2)
+        priority=49)
 ]
 
 # evaluators
-test_evaluator = [dict(type='PCKAccuracy', thr=0.1), dict(type='AUC')]
+test_evaluator = [dict(type='PCKAccuracy', thr=0.1),
+                  dict(type='AUC'), dict(type="NME", norm_mode="use_norm_item", norm_item="bbox_size")]
 val_evaluator = test_evaluator
