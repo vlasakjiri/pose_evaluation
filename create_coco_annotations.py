@@ -2,15 +2,17 @@
 from glob import glob
 import os
 
-from matplotlib.pylab import annotations
 
 from utils import *
 import cv2 as cv
 
-
-image_folder = "frames/"
+split_folder = ".\\data\\val"
+image_folder = os.path.join(split_folder, "img\\")
 predictions_folder = "./results/rtmpose-l_8xb512-700e_body8-halpe26-256x192/predictions/"
 landmarks_folder = "./gt/"
+annotations_output =  os.path.join(split_folder, "annotations.json")
+
+print("Creating annotations for", image_folder)
 
 image_files = glob(image_folder + "*")
 
@@ -25,6 +27,7 @@ categories = [{
 }]
 for id, image_file in enumerate(image_files):
     basename = os.path.basename(image_file).split(".")[0]
+
     video_name = basename.split("_")[0]
     frame_number = int(basename.split("_")[1])
 
@@ -41,7 +44,7 @@ for id, image_file in enumerate(image_files):
 
     if not facing_left:
         keypoint_mapping = flipKeypoints(keypoint_mapping, predictions)
-        print("Flipped keypoints", keypoint_mapping)
+        # print("Flipped keypoints", keypoint_mapping)
     predictions = predictions['instance_info']
     assert len(predictions) == len(gt)
     # predictions = predictionsToArr(predictions, keypoint_mapping)
@@ -60,12 +63,24 @@ for id, image_file in enumerate(image_files):
         "height": height,
         "width": width
     })
-    keypoints = [keypoint + [1] for keypoint in predictions["keypoints"]]
+    keypoints = [keypoint + [2] for keypoint in predictions["keypoints"]]
     for idx, gt_keypoint in zip(keypoint_mapping, gt):
         if idx != -1:
             keypoints[idx] = list(gt_keypoint) + [2]
 
-    bbox = predictions["bbox"][0]
+    # create bbox from keypoints min and max
+    padding = 50
+
+    xmin = min([keypoint[0] for keypoint in keypoints if keypoint[2] > 0])-padding
+    ymin = min([keypoint[1] for keypoint in keypoints if keypoint[2] > 0])-padding
+    xmax = max([keypoint[0] for keypoint in keypoints if keypoint[2] > 0])+padding
+    ymax = max([keypoint[1] for keypoint in keypoints if keypoint[2] > 0])+padding
+
+    bbox = [xmin, ymin, xmax, ymax]
+    #convert from [x,y,x2, y2] to [x,y,w,h]
+    bbox[2] = bbox[2] - bbox[0]
+    bbox[3] = bbox[3] - bbox[1]
+
     area = bbox[2] * bbox[3]
 
     annotations.append({
@@ -93,5 +108,5 @@ for id, image_file in enumerate(image_files):
 dataset = {"images": images, "annotations": annotations,
            "categories": categories}
 
-with open('annotations.json', 'w') as f:
+with open(annotations_output, 'w') as f:
     json.dump(dataset, f)
