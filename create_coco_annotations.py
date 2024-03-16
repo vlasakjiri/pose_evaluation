@@ -6,11 +6,11 @@ import os
 from utils import *
 import cv2 as cv
 
-split_folder = ".\\data\\val"
+split_folder = ".\\data\\train"
 image_folder = os.path.join(split_folder, "img\\")
 predictions_folder = "./results/rtmpose-l_8xb512-700e_body8-halpe26-256x192/predictions/"
 landmarks_folder = "./gt/"
-annotations_output =  os.path.join(split_folder, "annotations.json")
+annotations_output = os.path.join(split_folder, "annotations.json")
 
 print("Creating annotations for", image_folder)
 
@@ -63,7 +63,7 @@ for id, image_file in enumerate(image_files):
         "height": height,
         "width": width
     })
-    keypoints = [keypoint + [2] for keypoint in predictions["keypoints"]]
+    keypoints = [keypoint + [1] for keypoint in predictions["keypoints"]]
     for idx, gt_keypoint in zip(keypoint_mapping, gt):
         if idx != -1:
             keypoints[idx] = list(gt_keypoint) + [2]
@@ -71,13 +71,20 @@ for id, image_file in enumerate(image_files):
     # create bbox from keypoints min and max
     padding = 50
 
-    xmin = min([keypoint[0] for keypoint in keypoints if keypoint[2] > 0])-padding
-    ymin = min([keypoint[1] for keypoint in keypoints if keypoint[2] > 0])-padding
-    xmax = max([keypoint[0] for keypoint in keypoints if keypoint[2] > 0])+padding
-    ymax = max([keypoint[1] for keypoint in keypoints if keypoint[2] > 0])+padding
+    # xmin = min([keypoint[0] for keypoint in keypoints if keypoint[2] > 0])-padding
+    # ymin = min([keypoint[1] for keypoint in keypoints if keypoint[2] > 0])-padding
+    # xmax = max([keypoint[0] for keypoint in keypoints if keypoint[2] > 0])+padding
+    # ymax = max([keypoint[1] for keypoint in keypoints if keypoint[2] > 0])+padding
 
-    bbox = [xmin, ymin, xmax, ymax]
-    #convert from [x,y,x2, y2] to [x,y,w,h]
+    # bbox = [xmin, ymin, xmax, ymax]
+    bbox = predictions["bbox"][0]
+    # print(bbox)
+    bbox[0] = min(bbox[0], min([point[0] for point in gt]))
+    bbox[1] = min(bbox[1], min([point[1] for point in gt]))
+    bbox[2] = max(bbox[2], max([point[0] for point in gt]))
+    bbox[3] = max(bbox[3], max([point[1] for point in gt]))
+
+    # convert from [x,y,x2, y2] to [x,y,w,h]
     bbox[2] = bbox[2] - bbox[0]
     bbox[3] = bbox[3] - bbox[1]
 

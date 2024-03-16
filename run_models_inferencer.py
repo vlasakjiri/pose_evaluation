@@ -39,11 +39,11 @@ models = [
     # ("rtmpose-s_8xb1024-700e_body8-halpe26-256x192",
     #  "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-s_simcc-body7_pt-body7-halpe26_700e-256x192-7f134165_20230605.pth"),
 
-    ("rtmpose-m_8xb512-700e_body8-halpe26-256x192",
-     "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-256x192-4d3e73dd_20230605.pth"),
+    # ("rtmpose-m_8xb512-700e_body8-halpe26-256x192",
+    #  "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-256x192-4d3e73dd_20230605.pth"),
 
-    # ("rtmpose-l_8xb512-700e_body8-halpe26-256x192",
-    #  "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-l_simcc-body7_pt-body7-halpe26_700e-256x192-2abb7558_20230605.pth"),
+    ("rtmpose-l_8xb512-700e_body8-halpe26-256x192",
+     "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-l_simcc-body7_pt-body7-halpe26_700e-256x192-2abb7558_20230605.pth"),
 
     # ("rtmpose-m_8xb512-700e_body8-halpe26-384x288",
     #  "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/rtmpose-m_simcc-body7_pt-body7-halpe26_700e-384x288-89e6428b_20230605.pth"),
@@ -79,7 +79,7 @@ models = [
 
 output_root = "results"
 
-inputs = glob.glob("../bikefit_videa/*")
+inputs = glob.glob("D:\jiriv\OneDrive\\bikefit videa\\new/*")
 
 device = "cuda:0"
 save_visulization = True

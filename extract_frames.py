@@ -9,12 +9,13 @@ from glob import glob
 
 np.random.seed(0)
 
-train_videos = glob("C:\\Users\\jiriv\\OneDrive\\bikefit videa\\train\\*.mp4")
-val_videos = glob("C:\\Users\\jiriv\\OneDrive\\bikefit videa\\val\\*.mp4")
+train_videos = glob("D:\\jiriv\\OneDrive\\bikefit videa\\train\\*.mp4")
+val_videos = glob("D:\\jiriv\\OneDrive\\bikefit videa\\val\\*.mp4")
+NUM_FRAMES = 100
 
 
-train_zip = zip(train_videos, ["data/train"]*len(train_videos))
-val_zip = zip(val_videos, ["data/val"]*len(val_videos))
+train_zip = zip(train_videos, ["data/train/img"]*len(train_videos))
+val_zip = zip(val_videos, ["data/val/img"]*len(val_videos))
 
 for video, out_folder in (list(train_zip) + list(val_zip)):
     basename = os.path.basename(video).split(".")[0]
@@ -34,7 +35,7 @@ for video, out_folder in (list(train_zip) + list(val_zip)):
 
     # cluster predictions
     # Create a KMeans instance with n_clusters
-    kmeans = KMeans(n_clusters=40)
+    kmeans = KMeans(n_clusters=NUM_FRAMES)
 
     # Fit the model to your data
     kmeans.fit(predictions_reshaped)
@@ -47,7 +48,7 @@ for video, out_folder in (list(train_zip) + list(val_zip)):
 
     # Calculate the distance of each point to its centroid
     distances = np.array([distance.euclidean(point, centroids[label])
-                        for point, label in zip(predictions_reshaped, labels)])
+                          for point, label in zip(predictions_reshaped, labels)])
 
     # Initialize list to hold indexes of closest frames
     closest_frames = []
@@ -70,6 +71,7 @@ for video, out_folder in (list(train_zip) + list(val_zip)):
     num_frames = int(cap.get(cv.CAP_PROP_FRAME_COUNT))
 
     os.makedirs(out_folder, exist_ok=True)
+    assert num_frames == len(predictions)
 
     # print progress bar
     for _ in tqdm(range(num_frames)):
