@@ -9,9 +9,10 @@ from glob import glob
 
 np.random.seed(0)
 
-train_videos = glob("D:\\jiriv\\OneDrive\\bikefit videa\\train\\*.mp4")
-val_videos = glob("D:\\jiriv\\OneDrive\\bikefit videa\\val\\*.mp4")
-NUM_FRAMES = 100
+NUM_IMAGES = 100
+
+train_videos = glob("C:\\Users\\jiriv\\OneDrive\\bikefit videa\\train\\*.mp4")
+val_videos = glob("C:\\Users\\jiriv\\OneDrive\\bikefit videa\\val\\*.mp4")
 
 
 train_zip = zip(train_videos, ["data/train/img"]*len(train_videos))
@@ -19,6 +20,10 @@ val_zip = zip(val_videos, ["data/val/img"]*len(val_videos))
 
 for video, out_folder in (list(train_zip) + list(val_zip)):
     basename = os.path.basename(video).split(".")[0]
+    print(basename)
+    if glob(f"{out_folder}\\{basename}_*.jpg"):
+        print(f"Frames for {basename} already extracted")
+        continue
     # read video file
     cap = cv.VideoCapture(video)
 
@@ -31,11 +36,10 @@ for video, out_folder in (list(train_zip) + list(val_zip)):
 
     predictions = landmarksToArr(results)
     predictions_reshaped = predictions.reshape(len(predictions), -1)
-    print(predictions.shape)
 
     # cluster predictions
     # Create a KMeans instance with n_clusters
-    kmeans = KMeans(n_clusters=NUM_FRAMES)
+    kmeans = KMeans(n_clusters=NUM_IMAGES)
 
     # Fit the model to your data
     kmeans.fit(predictions_reshaped)
@@ -63,7 +67,6 @@ for video, out_folder in (list(train_zip) + list(val_zip)):
         # Append the original index of the closest frame to the list
         closest_frames.append(original_index)
 
-    print("Original indexes of closest frames to centroids: ", closest_frames)
 
     frame_idx = 0
     ret, frame = cap.read()
