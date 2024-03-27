@@ -27,9 +27,10 @@ categories = [{
 }]
 for id, image_file in enumerate(image_files):
     basename = os.path.basename(image_file).split(".")[0]
+    print("Processing", basename)
 
     video_name = basename.split("_")[0]
-    frame_number = int(basename.split("_")[1])
+    frame_number = int(basename.split("_")[-1])
 
     # load gt
     gt_file = f"gt\\{video_name}.json"
@@ -46,7 +47,12 @@ for id, image_file in enumerate(image_files):
         keypoint_mapping = flipKeypoints(keypoint_mapping, predictions)
         # print("Flipped keypoints", keypoint_mapping)
     predictions = predictions['instance_info']
-    assert len(predictions) == len(gt)
+
+    if len(predictions) != len(gt):
+        print("Different number of frames in predictions and gt")
+        print("Predictions:", len(predictions))
+        print("GT:", len(gt))
+        continue
     # predictions = predictionsToArr(predictions, keypoint_mapping)
 
     gt = gt[frame_number]
@@ -69,7 +75,6 @@ for id, image_file in enumerate(image_files):
             keypoints[idx] = list(gt_keypoint) + [2]
 
     # create bbox from keypoints min and max
-    padding = 50
 
     # xmin = min([keypoint[0] for keypoint in keypoints if keypoint[2] > 0])-padding
     # ymin = min([keypoint[1] for keypoint in keypoints if keypoint[2] > 0])-padding
@@ -78,11 +83,14 @@ for id, image_file in enumerate(image_files):
 
     # bbox = [xmin, ymin, xmax, ymax]
     bbox = predictions["bbox"][0]
+    # # padding = (bbox[2] - bbox[0]) * 0.05
+    padding = 0
+
     # print(bbox)
-    bbox[0] = min(bbox[0], min([point[0] for point in gt]))
-    bbox[1] = min(bbox[1], min([point[1] for point in gt]))
-    bbox[2] = max(bbox[2], max([point[0] for point in gt]))
-    bbox[3] = max(bbox[3], max([point[1] for point in gt]))
+    bbox[0] = min(bbox[0], min([point[0] for point in gt]) - padding)
+    bbox[1] = min(bbox[1], min([point[1] for point in gt]) - padding)
+    bbox[2] = max(bbox[2], max([point[0] for point in gt]) + padding)
+    bbox[3] = max(bbox[3], max([point[1] for point in gt]) + padding)
 
     # convert from [x,y,x2, y2] to [x,y,w,h]
     bbox[2] = bbox[2] - bbox[0]

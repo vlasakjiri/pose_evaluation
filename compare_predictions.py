@@ -11,11 +11,11 @@ import pandas as pd
 from utils import *
 
 scalingFactor = 1.6
-landmarks_files = glob.glob("gt/*.json")
+landmarks_files = glob.glob("gt/10.json")
 landmark_names = ["foot", "heel", "ankle",
                   "knee", "hip", "shoulder", "elbow", "wrist"]
-show = False
-video_path = '1-aero.mp4'
+show = True
+video_path = "C:\\Users\\jiriv\\OneDrive\\bikefit videa\\val\\10.mp4"
 
 keypoint_names = ["left_small_toe", "left_heel", "left_ankle",
                   "left_knee", "left_hip", "left_shoulder", "left_elbow", "left_wrist"]
@@ -48,24 +48,24 @@ def main():
 
             print(keypoint_mapping)
             predictions = results['instance_info']
-            assert len(predictions) == len(landmarks)
+            # assert len(predictions) == len(landmarks)
             if not facing_left:
                 keypoint_mapping = flipKeypoints(keypoint_mapping, results)
                 print("Flipped keypoints", keypoint_mapping)
 
             predictions = predictionsToArr(predictions, keypoint_mapping)
 
-            distances = calcDistancesArr(landmarks, predictions)
+            # distances = calcDistancesArr(landmarks, predictions)
 
-            landmarks_distances = np.mean(distances, axis=0)
+            # landmarks_distances = np.mean(distances, axis=0)
 
-            distances_dict = dict(zip(landmark_names, landmarks_distances))
+            # distances_dict = dict(zip(landmark_names, landmarks_distances))
 
-            data.append({
-                "model": model_name,
-                "video": video_path,
-                **distances_dict
-            })
+            # data.append({
+            #     "model": model_name,
+            #     "video": video_path,
+            #     **distances_dict
+            # })
 
             # print("Landmarks distances: \n" +
             #       pprint.pformat(distances_dict, indent=4))

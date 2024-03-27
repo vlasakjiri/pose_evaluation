@@ -9,7 +9,6 @@ from glob import glob
 
 np.random.seed(0)
 
-NUM_IMAGES = 100
 
 train_videos = glob("C:\\Users\\jiriv\\OneDrive\\bikefit videa\\train\\*.mp4")
 val_videos = glob("C:\\Users\\jiriv\\OneDrive\\bikefit videa\\val\\*.mp4")
@@ -26,9 +25,15 @@ for video, out_folder in (list(train_zip) + list(val_zip)):
         continue
     # read video file
     cap = cv.VideoCapture(video)
+    num_frames = int(cap.get(cv.CAP_PROP_FRAME_COUNT))
+    NUM_IMAGES = num_frames // 5
+
 
     results_file = f"gt\\{basename}.json"
-    results = getLandmarks(loadJSON(results_file)['$landmarksStore'], 1.6)
+    json_obj =loadJSON(results_file)
+    A = json_obj["A"]
+    B = json_obj["B"]
+    results = getLandmarks(json_obj['$landmarksStore'], 1.6)
 
     # if not facing_left:
     #     keypoint_mapping = flipKeypoints(keypoint_mapping, results)
@@ -36,6 +41,10 @@ for video, out_folder in (list(train_zip) + list(val_zip)):
 
     predictions = landmarksToArr(results)
     predictions_reshaped = predictions.reshape(len(predictions), -1)
+
+    if(num_frames != len(predictions)):
+        print(f"Number of frames in video {basename} ({num_frames}) does not match number of predictions in {results_file} ({len(predictions)}). Skipping.")
+        continue
 
     # cluster predictions
     # Create a KMeans instance with n_clusters
@@ -71,10 +80,9 @@ for video, out_folder in (list(train_zip) + list(val_zip)):
     frame_idx = 0
     ret, frame = cap.read()
     # get number of frames
-    num_frames = int(cap.get(cv.CAP_PROP_FRAME_COUNT))
+
 
     os.makedirs(out_folder, exist_ok=True)
-    assert num_frames == len(predictions)
 
     # print progress bar
     for _ in tqdm(range(num_frames)):
@@ -82,7 +90,7 @@ for video, out_folder in (list(train_zip) + list(val_zip)):
             # convert to CIELAB color space
             lab = cv.cvtColor(frame, cv.COLOR_BGR2LAB)
             mask = np.zeros(frame.shape[:2], dtype=np.uint8)
-            cv.inRange(lab, (0, 145, 186), (255, 184, 219), mask)
+            cv.inRange(lab, (0, A[0], B[0]), (255, A[1], B[1]), mask)
 
             # Remove small noise
             kernel = np.ones((3, 3), np.uint8)

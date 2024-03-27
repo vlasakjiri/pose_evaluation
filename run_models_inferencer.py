@@ -79,7 +79,7 @@ models = [
 
 output_root = "results"
 
-inputs = glob.glob("D:\jiriv\OneDrive\\bikefit videa\\new/*")
+inputs = glob.glob("D:\jiriv\OneDrive\\bikefit videa\\train/*")
 
 device = "cuda:0"
 save_visulization = True
@@ -106,14 +106,18 @@ def main():
             base_input = os.path.basename(input).split(".")[0]
             out_dir = os.path.join(
                 output_root, os.path.splitext(os.path.basename(pose_config))[0])
-            results = inferencer(inputs=input, out_dir=out_dir,
-                                 draw_bbox=True, vis_out_dir=None)
-
+            
             prediction_file = os.path.join(
                 out_dir, "predictions", base_input + ".json")
             if os.path.exists(prediction_file):
                 print("Skipping prediction file", prediction_file)
                 continue
+
+
+            results = inferencer(inputs=input, out_dir=out_dir,
+                                 draw_bbox=True, vis_out_dir=None)
+
+
             # log inference times
             timer = mmengine.Timer()
             times = []
